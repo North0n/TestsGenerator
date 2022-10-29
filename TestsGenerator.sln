@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestsGenerator", "TestsGenerator\TestsGenerator.csproj", "{E3174353-F2E7-4E4B-BF43-658163839650}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{DE25E172-690C-450A-ADB8-DFB706803FD5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestsGeneratorScript", "TestsGeneratorScript\TestsGeneratorScript.csproj", "{3F254295-B9F5-4408-93FF-9C6DCCDF9B9A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E3174353-F2E7-4E4B-BF43-658163839650}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3174353-F2E7-4E4B-BF43-658163839650}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3174353-F2E7-4E4B-BF43-658163839650}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3174353-F2E7-4E4B-BF43-658163839650}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE25E172-690C-450A-ADB8-DFB706803FD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE25E172-690C-450A-ADB8-DFB706803FD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE25E172-690C-450A-ADB8-DFB706803FD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE25E172-690C-450A-ADB8-DFB706803FD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F254295-B9F5-4408-93FF-9C6DCCDF9B9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F254295-B9F5-4408-93FF-9C6DCCDF9B9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F254295-B9F5-4408-93FF-9C6DCCDF9B9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F254295-B9F5-4408-93FF-9C6DCCDF9B9A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
