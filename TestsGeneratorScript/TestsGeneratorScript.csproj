@@ -7,4 +7,12 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="System.Threading.Tasks.Dataflow" Version="7.0.0-rc.2.22472.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\TestsGenerator\TestsGenerator.csproj" />
+    </ItemGroup>
+
 </Project>
