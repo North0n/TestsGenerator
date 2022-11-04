@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System.Text;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -7,7 +8,31 @@ namespace TestsGenerator
 {
     public class TestsGenerator
     {
-        public List<string> Generate(string source)
+        public class ClassInfo
+        {
+            public string ClassName { get; }
+            public string TestsFile { get; }
+
+            public ClassInfo(string className, string testsFile)
+            {
+                ClassName = className;
+                TestsFile = testsFile;
+            }
+        }
+
+        private class ClassData
+        {
+            public string ClassName { get; }
+            public MemberDeclarationSyntax TestClassDeclarationSyntax { get; }
+
+            public ClassData(string className, MemberDeclarationSyntax testClassDeclarationSyntax)
+            {
+                ClassName = className;
+                TestClassDeclarationSyntax = testClassDeclarationSyntax;
+            }
+        }
+        
+        public List<ClassInfo> Generate(string source)
         {
             var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
 
@@ -18,20 +43,21 @@ namespace TestsGenerator
                 .Select(classDeclaration => GenerateTestsClassWithParents(classDeclaration))
                 .ToList();
 
-            return classesDeclarations.Select(decl =>
-                CompilationUnit().WithUsings(new SyntaxList<UsingDirectiveSyntax>(usings).Add(UsingDirective(
-                        QualifiedName(
-                            IdentifierName("NUnit"),
-                            IdentifierName("Framework"))))).AddMembers(decl)
-                    .NormalizeWhitespace().ToFullString()).ToList();
+            return classesDeclarations.Select(classData => new ClassInfo(classData.ClassName,
+                CompilationUnit()
+                    .WithUsings(new SyntaxList<UsingDirectiveSyntax>(usings)
+                        .Add(UsingDirective(QualifiedName(IdentifierName("NUnit"), IdentifierName("Framework")))))
+                    .AddMembers(classData.TestClassDeclarationSyntax)
+                    .NormalizeWhitespace().ToFullString())).ToList();
         }
 
-        private MemberDeclarationSyntax GenerateTestsClassWithParents(ClassDeclarationSyntax classDeclaration)
+        private ClassData GenerateTestsClassWithParents(ClassDeclarationSyntax classDeclaration)
         {
             SyntaxNode? current = classDeclaration;
             var testClassDeclaration = GenerateTestsClass(classDeclaration);
             var isFirstNamespace = true;
             var currentTree = current;
+            var stringBuilder = new StringBuilder(testClassDeclaration.Identifier.Text);
             while (current.Parent is NamespaceDeclarationSyntax parent)
             {
                 NamespaceDeclarationSyntax ns;
@@ -48,13 +74,14 @@ namespace TestsGenerator
                 }
 
                 currentTree = ns;
+                stringBuilder.Insert(0, $"{ns.Name}.");
                 current = current.Parent;
             }
 
-            return (MemberDeclarationSyntax)currentTree;
+            return new ClassData(stringBuilder.ToString(), (MemberDeclarationSyntax)currentTree);
         }
 
-        private MemberDeclarationSyntax GenerateTestsClass(ClassDeclarationSyntax classDeclaration)
+        private ClassDeclarationSyntax GenerateTestsClass(ClassDeclarationSyntax classDeclaration)
         {
             var methods = classDeclaration.DescendantNodes().OfType<MethodDeclarationSyntax>().ToList();
             methods.Sort((method1, method2) =>
