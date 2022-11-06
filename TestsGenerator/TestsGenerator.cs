@@ -83,7 +83,8 @@ namespace TestsGenerator
 
         private ClassDeclarationSyntax GenerateTestsClass(ClassDeclarationSyntax classDeclaration)
         {
-            var methods = classDeclaration.DescendantNodes().OfType<MethodDeclarationSyntax>().ToList();
+            var methods = classDeclaration.DescendantNodes().OfType<MethodDeclarationSyntax>()
+                .Where(node => node.Modifiers.Any(n => n.Kind() == SyntaxKind.PublicKeyword)).ToList();
             methods.Sort((method1, method2) =>
                 string.Compare(method1.Identifier.Text, method2.Identifier.Text, StringComparison.Ordinal));
 
