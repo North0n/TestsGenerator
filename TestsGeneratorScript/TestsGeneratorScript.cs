@@ -12,6 +12,19 @@ internal static class TestsGeneratorScript
         }
         
         var inputFiles = args[0].Split('|');
+        var correctInputFiles = new List<string>();
+        foreach (var inputFile in inputFiles)
+        {
+            if (File.Exists(inputFile))
+            {
+                correctInputFiles.Add(inputFile);
+            }
+            else
+            {
+                Console.WriteLine($"File {inputFile} doesn't exist or you don't have permissions to open it. " +
+                                  "It would be removed from generating");
+            }
+        }
         var outputDirectory = args[1];
 
         if (!int.TryParse(args[2], out var degreeOfParallelismRead))
@@ -32,6 +45,6 @@ internal static class TestsGeneratorScript
 
         var testsGeneratorService = new TestsGeneratorService(degreeOfParallelismRead, degreeOfParallelismGenerate,
             degreeOfParallelismWrite, outputDirectory);
-        await testsGeneratorService.Generate(inputFiles.ToList());
+        await testsGeneratorService.Generate(correctInputFiles);
     }
 }
