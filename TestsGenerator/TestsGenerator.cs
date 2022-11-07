@@ -112,21 +112,24 @@ namespace TestsGenerator
                 {
                     methodArgs.RemoveAt(methodArgs.Count - 1);
                 }
+
+                var callerName = methods[i].Modifiers.Any(n => n.Kind() == SyntaxKind.StaticKeyword)
+                    ? classDeclaration.Identifier.Text
+                    : $"_{classDeclaration.Identifier.Text.ToCamelCase()}";
                 
-                if (methods[i].ReturnType.IsKind(SyntaxKind.VoidKeyword))
+                if (methods[i].ReturnType is PredefinedTypeSyntax predefinedTypeSyntax 
+                    && predefinedTypeSyntax.Keyword.ValueText == Token(SyntaxKind.VoidKeyword).ValueText)
                 {
                     // Act section
-                    methodBody.Add(ExpressionStatement(InvocationExpression(IdentifierName(methods[i].Identifier.Text))
-                        .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(methodArgs)))));
+                    methodBody.Add(ExpressionStatement(
+                        InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+                                IdentifierName(callerName), IdentifierName(methods[i].Identifier.Text)))
+                            .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(methodArgs)))));
                 }
                 else
                 {
                     // Act section
                     // var actual = MethodCall(args);
-                    var callerName = methods[i].Modifiers.Any(n => n.Kind() == SyntaxKind.StaticKeyword)
-                        ? classDeclaration.Identifier.Text
-                        : $"_{classDeclaration.Identifier.Text.ToCamelCase()}";
-                    
                     methodBody.Add(LocalDeclarationStatement(
                         VariableDeclaration(IdentifierName(Identifier(TriviaList(), SyntaxKind.VarKeyword, "var",
                             "var", TriviaList()))).WithVariables(SingletonSeparatedList(
@@ -268,6 +271,7 @@ namespace TestsGenerator
                 IdentifierName($"_{classDeclaration.Identifier.Text.ToCamelCase()}"),
                 ObjectCreationExpression(IdentifierName(classDeclaration.Identifier))
                     .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(classConstructorArguments))))));
+            // Add check if class is static
             members.Add(MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), Identifier("Setup"))
                 .WithAttributeLists(
                     SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("SetUp"))))))
