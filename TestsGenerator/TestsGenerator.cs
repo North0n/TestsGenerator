@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using TestsGenerator.Extensions;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace TestsGenerator
@@ -124,7 +125,7 @@ namespace TestsGenerator
                     // var actual = MethodCall(args);
                     var callerName = methods[i].Modifiers.Any(n => n.Kind() == SyntaxKind.StaticKeyword)
                         ? classDeclaration.Identifier.Text
-                        : $"_{classDeclaration.Identifier.Text}";
+                        : $"_{classDeclaration.Identifier.Text.ToCamelCase()}";
                     
                     methodBody.Add(LocalDeclarationStatement(
                         VariableDeclaration(IdentifierName(Identifier(TriviaList(), SyntaxKind.VarKeyword, "var",
@@ -212,7 +213,7 @@ namespace TestsGenerator
                 FieldDeclaration(VariableDeclaration(IdentifierName(classDeclaration.Identifier.Text))
                         .WithVariables(
                             SingletonSeparatedList(
-                                VariableDeclarator(Identifier($"_{classDeclaration.Identifier.Text}")))))
+                                VariableDeclarator(Identifier($"_{classDeclaration.Identifier.Text.ToCamelCase()}")))))
                     .WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword)))
             };
             
@@ -226,12 +227,12 @@ namespace TestsGenerator
                     {
                         members.Add(FieldDeclaration(VariableDeclaration(IdentifierName(parameter.Type!.ToString()))
                                 .WithVariables(SingletonSeparatedList(
-                                    VariableDeclarator(Identifier($"_{parameter.Identifier.Text}")))))
+                                    VariableDeclarator(Identifier($"_{parameter.Identifier.Text.ToCamelCase()}")))))
                             .WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword))));
 
                         setupBodyBlock.Add(ExpressionStatement(AssignmentExpression(
                             SyntaxKind.SimpleAssignmentExpression,
-                            IdentifierName($"_{parameter.Identifier.Text}"),
+                            IdentifierName($"_{parameter.Identifier.Text.ToCamelCase()}"),
                             MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
                                 ObjectCreationExpression(GenericName(Identifier("Mock"))
                                         .WithTypeArgumentList(TypeArgumentList(
@@ -241,7 +242,7 @@ namespace TestsGenerator
                                         Argument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
                                             IdentifierName("MockBehavior"), IdentifierName("Strict")))))),
                                 IdentifierName("Object")))));
-                        classConstructorArguments.Add(Argument(IdentifierName($"_{parameter.Identifier.Text}")));
+                        classConstructorArguments.Add(Argument(IdentifierName($"_{parameter.Identifier.Text.ToCamelCase()}")));
                     }
                     else
                     {
@@ -264,7 +265,7 @@ namespace TestsGenerator
             }
 
             setupBodyBlock.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
-                IdentifierName($"_{classDeclaration.Identifier.Text}"),
+                IdentifierName($"_{classDeclaration.Identifier.Text.ToCamelCase()}"),
                 ObjectCreationExpression(IdentifierName(classDeclaration.Identifier))
                     .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(classConstructorArguments))))));
             members.Add(MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), Identifier("Setup"))
