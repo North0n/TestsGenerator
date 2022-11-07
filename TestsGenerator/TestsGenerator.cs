@@ -37,16 +37,16 @@ namespace TestsGenerator
             var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
 
             var usings = root.DescendantNodes().OfType<UsingDirectiveSyntax>();
-            var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                .Where(node => node.Modifiers.Any(n => n.Kind() == SyntaxKind.PublicKeyword)).ToList();
 
-            var classesDeclarations = classes
-                .Select(classDeclaration => GenerateTestsClassWithParents(classDeclaration))
-                .ToList();
+            var classesDeclarations = classes.Select(GenerateTestsClassWithParents).ToList();
 
             return classesDeclarations.Select(classData => new ClassInfo(classData.ClassName,
                 CompilationUnit()
                     .WithUsings(new SyntaxList<UsingDirectiveSyntax>(usings)
-                        .Add(UsingDirective(QualifiedName(IdentifierName("NUnit"), IdentifierName("Framework")))))
+                        .Add(UsingDirective(QualifiedName(IdentifierName("NUnit"), IdentifierName("Framework"))))
+                        .Add(UsingDirective(IdentifierName("Moq"))))
                     .AddMembers(classData.TestClassDeclarationSyntax)
                     .NormalizeWhitespace().ToFullString())).ToList();
         }
@@ -130,12 +130,89 @@ namespace TestsGenerator
                 testMethods[i] = method;
             }
 
+            var setupDecl = GenerateSetUp(classDeclaration);
             var classDecl = ClassDeclaration(classDeclaration.Identifier.Text + "Tests")
                 .AddModifiers(Token(SyntaxKind.PublicKeyword))
-                .WithMembers(new SyntaxList<MemberDeclarationSyntax>(testMethods))
+                .WithMembers(new SyntaxList<MemberDeclarationSyntax>(setupDecl.Concat(testMethods)))
                 .WithAttributeLists(
                     SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("TestFixture"))))));
             return classDecl;
+        }
+
+        private List<MemberDeclarationSyntax> GenerateSetUp(ClassDeclarationSyntax classDeclaration)
+        {
+            var constructors = classDeclaration.DescendantNodes().OfType<ConstructorDeclarationSyntax>()
+                .OrderBy(c => c.ParameterList.Parameters.Count).ToList();
+
+            // TODO make field names _bebraClass instead of _BebraClass
+            var members = new List<MemberDeclarationSyntax>
+            {
+                // Declaration of private field <ClassName> _<className>;
+                FieldDeclaration(VariableDeclaration(IdentifierName(classDeclaration.Identifier.Text))
+                        .WithVariables(
+                            SingletonSeparatedList(
+                                VariableDeclarator(Identifier($"_{classDeclaration.Identifier.Text}")))))
+                    .WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword)))
+            };
+            
+            var setupBodyBlock = new List<StatementSyntax>();
+            var classConstructorArguments = new List<SyntaxNodeOrToken>();
+            if (constructors.Count != 0)
+            {
+                foreach (var parameter in constructors[0].ParameterList.Parameters)
+                {
+                    if (parameter.Type!.ToString().StartsWith("I"))
+                    {
+                        members.Add(FieldDeclaration(VariableDeclaration(IdentifierName(parameter.Type!.ToString()))
+                                .WithVariables(SingletonSeparatedList(
+                                    VariableDeclarator(Identifier($"_{parameter.Identifier.Text}")))))
+                            .WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword))));
+
+                        setupBodyBlock.Add(ExpressionStatement(AssignmentExpression(
+                            SyntaxKind.SimpleAssignmentExpression,
+                            IdentifierName($"_{parameter.Identifier.Text}"),
+                            MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+                                ObjectCreationExpression(GenericName(Identifier("Mock"))
+                                        .WithTypeArgumentList(TypeArgumentList(
+                                            SingletonSeparatedList<TypeSyntax>(
+                                                IdentifierName(parameter.Type.ToString())))))
+                                    .WithArgumentList(ArgumentList(SingletonSeparatedList(
+                                        Argument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+                                            IdentifierName("MockBehavior"), IdentifierName("Strict")))))),
+                                IdentifierName("Object")))));
+                        classConstructorArguments.Add(Argument(IdentifierName($"_{parameter.Identifier.Text}")));
+                    }
+                    else
+                    {
+                        setupBodyBlock.Add(LocalDeclarationStatement(
+                            VariableDeclaration(parameter.Type).WithVariables(
+                                SingletonSeparatedList(VariableDeclarator(Identifier(parameter.Identifier.Text))
+                                    .WithInitializer(EqualsValueClause(LiteralExpression(
+                                        SyntaxKind.DefaultLiteralExpression, Token(SyntaxKind.DefaultKeyword))))))));
+                        classConstructorArguments.Add(Argument(IdentifierName(parameter.Identifier.Text)));
+                    }
+
+                    classConstructorArguments.Add(Token(SyntaxKind.CommaToken));
+                }
+                
+                // Last argument would be comma, so we remove it
+                if (classConstructorArguments.Count != 0)
+                {
+                    classConstructorArguments.RemoveAt(classConstructorArguments.Count - 1);
+                }
+            }
+
+            setupBodyBlock.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
+                IdentifierName($"_{classDeclaration.Identifier.Text}"),
+                ObjectCreationExpression(IdentifierName(classDeclaration.Identifier))
+                    .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(classConstructorArguments))))));
+            members.Add(MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), Identifier("Setup"))
+                .WithAttributeLists(
+                    SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("SetUp"))))))
+                .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
+                .WithBody(Block(setupBodyBlock)));
+
+            return members;
         }
     }
 }
