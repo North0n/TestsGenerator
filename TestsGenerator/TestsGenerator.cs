@@ -206,10 +206,14 @@ namespace TestsGenerator
 
         private List<MemberDeclarationSyntax> GenerateSetUp(ClassDeclarationSyntax classDeclaration)
         {
+            if (classDeclaration.Modifiers.Any(n => n.Kind() == SyntaxKind.StaticKeyword))
+            {
+                return new List<MemberDeclarationSyntax>();
+            }
+            
             var constructors = classDeclaration.DescendantNodes().OfType<ConstructorDeclarationSyntax>()
                 .OrderBy(c => c.ParameterList.Parameters.Count).ToList();
 
-            // TODO make field names _bebraClass instead of _BebraClass
             var members = new List<MemberDeclarationSyntax>
             {
                 // Declaration of private field <ClassName> _<className>;
@@ -271,7 +275,6 @@ namespace TestsGenerator
                 IdentifierName($"_{classDeclaration.Identifier.Text.ToCamelCase()}"),
                 ObjectCreationExpression(IdentifierName(classDeclaration.Identifier))
                     .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(classConstructorArguments))))));
-            // Add check if class is static
             members.Add(MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), Identifier("Setup"))
                 .WithAttributeLists(
                     SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("SetUp"))))))

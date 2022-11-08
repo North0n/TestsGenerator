@@ -177,6 +177,23 @@ public class TestsGeneratorTests
         });
     }
 
+    [Test]
+    public void StaticClassTest()
+    {
+        var classTests = _generator.Generate(ProgramText4);
+        Assert.That(classTests, Has.Count.GreaterThanOrEqualTo(1));
+        var parsedClass = CSharpSyntaxTree.ParseText(classTests[0].TestsFile).GetCompilationUnitRoot();
+        var methods = parsedClass.DescendantNodes().OfType<MethodDeclarationSyntax>().ToList();
+        
+        // No setup method
+        Assert.That(methods, Has.Count.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(methods[0].Identifier.Text, Is.Not.EqualTo("Setup"));
+            Assert.That(methods[1].Identifier.Text, Is.Not.EqualTo("Setup"));
+        });
+    }
+
     private const string ProgramText1 = @"
         namespace HelloWorld
         {
@@ -278,4 +295,22 @@ public class TestsGeneratorTests
                 }
             }
         }";
+
+    private const string ProgramText4 = @"
+namespace FirstNs.Second
+{
+    public static class Program
+    {
+        public static double Calculate(double x)
+        {
+            return Math.Sqrt(x) * 9 - 42;
+        }
+
+        public static int Calculate(int x)
+        {
+            return 42 * x;
+        }
+    }
+}
+";
 }
